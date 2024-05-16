@@ -1,40 +1,59 @@
 type Node InnerNode|LeafNode;
 
-type LeafNode boolean;
+type NodeBase record {
+    int index;
+};
 
-type InnerNode record {
+type LeafNode readonly & record {|
+    *NodeBase;
+    boolean value;
+|};
+
+type InnerNode readonly & record {|
+    *NodeBase;
     string identifier;
     Node left;
     Node middle;
     Node right;
-};
+|};
 
-function parseNode(Tokenizer tok) returns Node {
+class ParseContext {
+    int nextId = 0;
+
+    function nextIndex() returns int {
+        int index = self.nextId;
+        self.nextId = self.nextId + 1;
+        return index;
+    }
+}
+
+function parseNode(ParseContext cx, Tokenizer tok) returns Node {
     Token? token = tok.next();
     if token == () {
         panic error("Unexpected EOF");
     }
     if token is Identifier {
-        return finishInnerNode(tok, token[0]);
+        return finishInnerNode(cx, tok, token[0]);
     } else if token == OPEN_PAREN {
-        Node node = parseNode(tok);
+        Node node = parseNode(cx, tok);
         expectToken(tok, CLOSE_PAREN);
         return node;
     } else if token is TRUE|FALSE {
-        return token == TRUE;
+        return {index: cx.nextIndex(), value: token == TRUE};
     } else {
         panic error("Unexpected token " + token);
     }
 }
 
-function finishInnerNode(Tokenizer tok, string identifier) returns InnerNode {
+function finishInnerNode(ParseContext cx, Tokenizer tok, string identifier) returns InnerNode {
+    int index = cx.nextIndex();
     expectToken(tok, QUESTION_MARK);
-    Node left = parseNode(tok);
+    Node left = parseNode(cx, tok);
     expectToken(tok, COLON);
-    Node middle = parseNode(tok);
+    Node middle = parseNode(cx, tok);
     expectToken(tok, COLON);
-    Node right = parseNode(tok);
-    return {identifier, left, middle, right};
+    Node right = parseNode(cx, tok);
+    return {index, identifier, left, middle, right};
 }
 
 function expectToken(Tokenizer tok, Token token) {
