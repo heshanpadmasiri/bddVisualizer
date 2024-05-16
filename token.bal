@@ -85,3 +85,9 @@ isolated function isDigit(string:Char c) returns boolean {
     return c >= "0" && c <= "9";
 }
 
+isolated function tokenToString(Token token) returns string {
+    if token is string {
+        return token;
+    }
+    return "Ident:" + token[0];
+}
