@@ -1,4 +1,5 @@
 import ballerina/io;
+import ballerina/file;
 
 isolated function getName(Node node) returns string {
     return string `node_${node.index}`;
@@ -44,8 +45,16 @@ function drawGraph(Node topNode) returns string {
     return "\n".join(...graph);
 }
 
-public function main(string inputPath) returns error? {
-    string data = check io:fileReadString(inputPath);
+function getInputData(string data) returns string|error {
+    boolean isFile = check file:test(data, "EXISTS");
+    if (isFile) {
+        return check io:fileReadString(data);
+    }
+    return data;
+}
+
+public function main(string inputData) returns error? {
+    string data = check getInputData(inputData);
     Tokenizer tokenizer = new Tokenizer(data);
     ParseContext context = new;
     Node topNode = parseNode(context, tokenizer);
